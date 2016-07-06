@@ -16,7 +16,7 @@
 	It is claimed that almost every wikipedia article ultimately leads to the page 'Philosophy'. Lets verify this!
 	We shall do this for 1000 random pages and compute the number of FLCs (First link clicks) it takes to reach the page 'Philosophy'! :D
 	<input id="wikipedia-link" type="text" />
-	<button onclick="scrapeData();">Scrape Data!</button>
+	<button onclick="scrapeData('https://en.wikipedia.org/wiki/Physics');">Scrape Data!</button>
 	<div id="contents"></div>
 	<div id="img"></div>
 	<div id="contents"></div>
@@ -24,28 +24,27 @@
 	<script src="jQuery-2.1.4.min.js"></script>
 	<script src="beautiful-soup.js"></script>
 	<script>
-	var article;
-		scrapeData = function() {
-			article=new beautifulSoup('https://en.wikipedia.org/wiki/Physics');
+	var level=0;
+		scrapeData = function(link) {
+			var article=new beautifulSoup(link);
 			article.onReady('pre-process', function(content){
-				//replace brackets with some wrapper and bracket, to avoid getting them as first links!
-				// var regex = /"[^"]+"|(\()/g;
-				// content = content.replace(regex, function(m, group1) {
-				//     if (!group1) return m;
-				//     else return '<div class="bracketed">';
-				// });
-				// var regex2 = /"[^"]+"|(\))/g;
-				// content = content.replace(regex, function(m, group1) {
-				//     if (!group1) return m;
-				//     else return '</div>';
-				// });
-				content=content.replace(/\(/g,'<div>');
-				content=content.replace(/\)/g,'</div>');	
+				content=content.replace(/\(/g,'<span>');
+				content=content.replace(/\)/g,'</span>');	
 				return content;
 			}).then(function(){
 				article.onReady('findAll',['title','p>a']).then(function(results){
-					console.log("First paragraphs:",results[0][0].children[0].self.innerContent);
-					console.log("First paragraphs:",results[1]);
+					var title=results[0][0].children[0].self.innerContent;
+					if(title=='Philosophy - Wikipedia, the free encyclopedia'){
+						console.log('found at level', level);
+					} else {
+						level++;
+						nextArticle=results[1][0].self.href;
+						nextArticle=nextArticle.replace('<span>','(');
+						nextArticle=nextArticle.replace('</span>',')');
+						console.log(nextArticle);
+						scrapeData('https://en.wikipedia.org'+nextArticle);
+					}
+					
 				});
 			});
 			
