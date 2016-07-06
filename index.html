@@ -16,35 +16,57 @@
 	It is claimed that almost every wikipedia article ultimately leads to the page 'Philosophy'. Lets verify this!
 	We shall do this for 1000 random pages and compute the number of FLCs (First link clicks) it takes to reach the page 'Philosophy'! :D
 	<input id="wikipedia-link" type="text" />
-	<button onclick="scrapeData('https://en.wikipedia.org/wiki/Physics');">Scrape Data!</button>
-	<div id="contents"></div>
-	<div id="img"></div>
-	<div id="contents"></div>
-	<div id="references"></div>
+	<button onclick="scrapeData('https://en.wikipedia.org/wiki/Jeanne_P%C3%A9rez');">Scrape Data!</button>
 	<script src="jQuery-2.1.4.min.js"></script>
 	<script src="beautiful-soup.js"></script>
 	<script>
 	var level=0;
+	var ctr=0;
 		scrapeData = function(link) {
+			var pagesArray=[];
+			$('body').append($('<div />').attr('id',++ctr));
 			var article=new beautifulSoup(link);
 			article.onReady('pre-process', function(content){
 				content=content.replace(/\(/g,'<span>');
 				content=content.replace(/\)/g,'</span>');	
 				return content;
 			}).then(function(){
-				article.onReady('findAll',['title','p>a']).then(function(results){
-					var title=results[0][0].children[0].self.innerContent;
-					if(title=='Philosophy - Wikipedia, the free encyclopedia'){
-						console.log('found at level', level);
+				//remove italics & brackets
+				article.onReady('remove',['i','span','sup','table','.hatnote','.thumbinner','.external']);
+			}).then(function(){
+				article.onReady('findAll',['title','#mw-content-text a']).then(function(results){
+					var title=results[0][0].children[0].self.innerContent.replace(' - Wikipedia, the free encyclopedia','');
+					$('#'+ctr).append('>'+title);
+					pagesArray.push(title);
+					if(title=='Philosophy'){
+						$('#'+ctr).append('<br/> ###Found at level'+level);
+						level=0;
+						scrapeData('http://en.wikipedia.org/wiki/Special:Random');
 					} else {
-						level++;
-						nextArticle=results[1][0].self.href;
-						nextArticle=nextArticle.replace('<span>','(');
-						nextArticle=nextArticle.replace('</span>',')');
-						console.log(nextArticle);
-						scrapeData('https://en.wikipedia.org'+nextArticle);
-					}
-					
+						if(results[1].length>0){
+						if(level<50){
+							nextArticle=results[1][0].self.href;
+							nextArticle=nextArticle.replace('<span>','(');
+							nextArticle=nextArticle.replace('</span>',')');
+							if(pagesArray.indexOf(nextArticle)>-1) {
+								$('#'+ctr).append('<br/> ###Stuck in loop, exiting...');
+								level=0;
+								scrapeData('http://en.wikipedia.org/wiki/Special:Random');								
+							} else {
+								level++;
+								scrapeData('https://en.wikipedia.org'+nextArticle);
+							}
+						} else {
+							$('#'+ctr).append('<br/> ###Max level of search exceeded, exiting...');
+							level=0;
+							scrapeData('http://en.wikipedia.org/wiki/Special:Random');
+						}
+						} else {
+							$('#'+ctr).append('<br/> ###No links, exiting...');
+							level=0;
+							scrapeData('http://en.wikipedia.org/wiki/Special:Random');
+						}					
+					}					
 				});
 			});
 			
